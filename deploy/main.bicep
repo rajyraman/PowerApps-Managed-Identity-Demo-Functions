@@ -98,6 +98,14 @@ resource functionApp 'Microsoft.Web/sites@2021-01-15' = {
           name: 'PowerApps:EnvironmentUrl'
           value: environmentUrl
         }
+        {
+          name: 'OpenApi__HideSwaggerUI'
+          value: 'false'
+        }
+        {
+          name: 'OpenApi__AuthLevel__UI'
+          value: 'Function'
+        }
       ]
     }
     httpsOnly: true

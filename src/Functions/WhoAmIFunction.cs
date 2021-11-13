@@ -17,42 +17,56 @@ using Microsoft.Extensions.Options;
 using Azure.Identity;
 using Azure.Core;
 using Microsoft.PowerPlatform.Dataverse.Client;
+using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Metadata;
 
 namespace PowerAppsManagedIdentityDemoFunctions.Functions
 {
     public class WhoAmIFunction
     {
-        private readonly DefaultAzureCredential _managedIdentity;
+        private readonly ServiceClient _serviceClient;
         private readonly HttpClient _client;
         private readonly FunctionSettings _settings;
-        public WhoAmIFunction(DefaultAzureCredential managedIdentity, IHttpClientFactory httpClientFactory, IOptions<FunctionSettings> options)
+        public WhoAmIFunction(IOrganizationService serviceClient, IHttpClientFactory httpClientFactory, IOptions<FunctionSettings> options)
         {
-            _managedIdentity = managedIdentity;
+            _serviceClient = serviceClient as ServiceClient;
             _client = httpClientFactory.CreateClient();
             _settings = options.Value;
         }
 
-        [FunctionName("whoami")]
-        [OpenApiOperation(operationId: "whoami", tags: "PowerApps", Description = "Get Details about current user (Managed Identity)", Summary = "Get Details about current user (Managed Identity)")]
+        [FunctionName("entitymetadata")]
+        [OpenApiOperation(operationId: "entitymetadata", tags: "PowerApps", Description = "Get Details about an entity (Managed Identity)", Summary = "Get Details about an entity (Managed Identity)")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/json", bodyType: typeof(string), Description = "Response with userId, environmentId")]
-        public async Task<ActionResult> Run(
+        [OpenApiParameter(name: "entityName", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The entity to retrieve metadata for")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/json", bodyType: typeof(EntityMetadata), Description = "Response with entity metadata")]
+        public ActionResult WhoAmI(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "entity/{entityName}")] HttpRequest req,
             string entityName,
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            log.LogInformation("C# HTTP trigger function processed entitymetadata request.");
+            //Use Service Client, but use AZ Identity to get token
+            var entityMetaData = _serviceClient.GetEntityMetadata(entityName);
+            return new OkObjectResult(entityMetaData);
+
+        }
+
+        [FunctionName("whoami")]
+        [OpenApiOperation(operationId: "whoami", tags: "PowerApps", Description = "Get details about current Managed Identity user", Summary = "Get details about current Managed Identity user using raw HTTP")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/json", bodyType: typeof(string), Description = "Response with userId, organization and business unit")]
+        public async Task<ActionResult> Token(
+            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequest req,
+            ILogger log)
+        {
+            log.LogInformation("C# HTTP trigger function processed whoami request.");
 
             //Raw Token Request
-            //string accessToken = (await _managedIdentity.GetTokenAsync(new TokenRequestContext(new[] { $"{_settings.EnvironmentUrl}/.default" }))).Token;
-            //_client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-            //var response = await _client.GetAsync($"{_settings.EnvironmentUrl}/api/data/v9.2/WhoAmI()");
-            
-            //Use Service Client, but use AZ Identity to get token
-            var serviceClient = new ServiceClient(tokenProviderFunction: async u => 
-                    (await _managedIdentity.GetTokenAsync(new TokenRequestContext(new[] { $"{_settings.EnvironmentUrl}/.default" }))).Token, instanceUrl: new Uri(_settings.EnvironmentUrl));
-            var entityMetaData = serviceClient.GetEntityMetadata(entityName);
-            return new OkObjectResult(entityMetaData);
+            string accessToken = _serviceClient.CurrentAccessToken;
+            _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            var whoAmIResponse = await (await _client.GetAsync($"{_settings.EnvironmentUrl}/api/data/v9.2/WhoAmI()")).Content.ReadAsStringAsync();
+            dynamic data = JsonConvert.DeserializeObject(whoAmIResponse);
+            return new OkObjectResult(data);
 
         }
     }
