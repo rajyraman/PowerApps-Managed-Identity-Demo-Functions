@@ -106,6 +106,10 @@ resource functionApp 'Microsoft.Web/sites@2021-01-15' = {
           name: 'OpenApi__AuthLevel__UI'
           value: 'Function'
         }
+        {
+          name: 'PreferConnectionAffinity'
+          value: 'false'
+        }
       ]
     }
     httpsOnly: true

@@ -44,7 +44,7 @@ namespace PowerAppsManagedIdentityDemoFunctions.Functions
             string entityName,
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed entitymetadata request.");
+            log.LogInformation($"C# HTTP trigger function processed entitymetadata request for {entityName}.");
             //Use Service Client, but use AZ Identity to get token
             var entityMetaData = _serviceClient.GetEntityMetadata(entityName);
             return new OkObjectResult(entityMetaData);
