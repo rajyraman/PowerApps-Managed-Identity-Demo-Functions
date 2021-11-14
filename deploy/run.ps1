@@ -13,13 +13,19 @@ cd ../src
 func azure functionapp publish $output[0]
 
 if($createApplicationUser) {
-    Write-Output "Creating Application User"
     if (-not (Get-Module -Name "Microsoft.Xrm.Data.Powershell")) {
          Install-Module Microsoft.Xrm.Data.PowerShell -Scope CurrentUser
     }    
     Import-Module Microsoft.Xrm.Data.PowerShell
     $conn = Get-CrmConnection -InteractiveMode
-    $rootBusinessUnit = (Get-CrmRecords -EntityLogicalName businessunit -conn $conn -Fields businessunitid -FilterAttribute parentbusinessunitid -FilterOperator null).CrmRecords[0].businessunitid;
-    $rootBusinessUnitLookup = New-CrmEntityReference -EntityLogicalName businessunit -Id $rootBusinessUnit
-    New-CrmRecord systemuser @{"applicationid"=[guid]$applicationId; businessunitid=$rootBusinessUnitLookup} -conn $conn
+    $applicationUsers = Get-CrmRecords -EntityLogicalName systemuser -conn $conn -Fields fullname -FilterAttribute applicationid -FilterOperator eq -FilterValue $applicationId
+    if($applicationUsers.CrmRecords.Count -eq 0) {
+        Write-Output "Creating Application User"
+        $rootBusinessUnit = (Get-CrmRecords -EntityLogicalName businessunit -conn $conn -Fields businessunitid -FilterAttribute parentbusinessunitid -FilterOperator null).CrmRecords[0].businessunitid;
+        $rootBusinessUnitLookup = New-CrmEntityReference -EntityLogicalName businessunit -Id $rootBusinessUnit
+        New-CrmRecord systemuser @{"applicationid"=[guid]$applicationId; businessunitid=$rootBusinessUnitLookup} -conn $conn
+    }
+    else {
+        Write-Output "Application User $($applicationUsers.CrmRecords[0].fullname) already exists"
+    }
 }
