@@ -1,4 +1,4 @@
-name: Build and deploy .NET Core application to Function App fn-powerapps-api-sloojb3imt3xy
+name: Build and deploy fn-powerapps-api-sloojb3imt3xy (Publish Profile)
 on:
   workflow_dispatch:    
   push:

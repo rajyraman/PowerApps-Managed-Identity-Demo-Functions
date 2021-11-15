@@ -1,0 +1,53 @@
+name: Build and deploy fn-powerapps-api-sloojb3imt3xy (OIDC)
+on:
+  workflow_dispatch:    
+permissions:
+      id-token: write
+env:
+  AZURE_FUNCTIONAPP_NAME: fn-powerapps-api-sloojb3imt3xy
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: ./.
+  WORKING_DIRECTORY: ./src
+  CONFIGURATION: Release
+  DOTNET_CORE_VERSION: 3.1.x
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+
+    - name: Installing CLI-beta for OpenID Connect
+      run: |
+        cd ../..
+        CWD="$(pwd)"
+        python3 -m venv oidc-venv
+        . oidc-venv/bin/activate
+        echo "activated environment"
+        python3 -m pip install -q --upgrade pip
+        echo "started installing cli beta"
+        pip install -q --extra-index-url https://azcliprod.blob.core.windows.net/beta/simple/ azure-cli
+        echo "***************installed cli beta*******************"
+        echo "$CWD/oidc-venv/bin" >> $GITHUB_PATH
+        
+    - name: 'Az CLI login'
+      uses: azure/login@v1.4.0
+      with:
+        client-id: ${{ secrets.AZURE_CLIENTID }}
+        tenant-id: ${{ secrets.AZURE_TENANTID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTIONID }}
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
+        
+    - name: Build
+      run: dotnet build "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }}
+
+    - name: Publish
+      run: dotnet publish "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-build --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+
+    - name: Deploy to Azure Function App
+      uses: Azure/functions-action@v1
+      with: # Set Azure credentials secret as an input
+        app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+        package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
