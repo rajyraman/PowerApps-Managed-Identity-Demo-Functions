@@ -22,10 +22,12 @@ namespace PowerAppsManagedIdentityDemoFunctions
                 });
             builder.Services.AddSingleton<IOrganizationService, ServiceClient>(x =>
             {
-                var managedIdentity = new DefaultAzureCredential();
+                var managedIdentity = new ManagedIdentityCredential();
                 var environment = Environment.GetEnvironmentVariable("PowerApps:EnvironmentUrl");
                 return new ServiceClient(tokenProviderFunction: async u =>
-                    (await managedIdentity.GetTokenAsync(new TokenRequestContext(new[] { $"{environment}/.default" }))).Token, instanceUrl: new Uri(environment));
+                    (await managedIdentity.GetTokenAsync(
+                        new TokenRequestContext(new[] { $"{environment}/.default" }))).Token, 
+                        instanceUrl: new Uri(environment));
             });
         }
     }
