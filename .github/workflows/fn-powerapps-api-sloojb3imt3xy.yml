@@ -7,7 +7,7 @@ on:
     - '.github/**'    
 env:
   AZURE_FUNCTIONAPP_NAME: fn-powerapps-api-sloojb3imt3xy
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: .\.
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: .\src
   CONFIGURATION: Release
   DOTNET_CORE_VERSION: 3.1.x
 jobs:
