@@ -4,7 +4,8 @@ on:
   push:
     branches: [ main ]
     paths-ignore:
-    - '.github/**'    
+    - '.github/**'
+    - 'deploy/**'        
 env:
   AZURE_FUNCTIONAPP_NAME: fn-powerapps-api-sloojb3imt3xy
   AZURE_FUNCTIONAPP_PACKAGE_PATH: .\.
