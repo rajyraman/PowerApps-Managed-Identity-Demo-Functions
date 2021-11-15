@@ -21,9 +21,6 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
 
-    - name: Restore
-      run: dotnet restore
-
     - name: Install CLI-beta
       run: |
           cd ../..
@@ -52,7 +49,7 @@ jobs:
         enable-AzPSSession: true
 
     - name: Build
-      run: dotnet build --configuration ${{ env.CONFIGURATION }} --no-restore
+      run: dotnet build --configuration ${{ env.CONFIGURATION }}
 
     - name: Publish
       run: dotnet publish --configuration ${{ env.CONFIGURATION }} --no-build --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
