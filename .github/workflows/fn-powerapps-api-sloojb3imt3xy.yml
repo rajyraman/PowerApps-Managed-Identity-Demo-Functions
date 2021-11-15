@@ -20,34 +20,7 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
-
-    - name: Install CLI-beta
-      run: |
-          cd ../..
-          $CWD = Convert-Path .
-          echo $CWD
-          python --version
-          python -m venv oidc-venv
-          . .\oidc-venv\Scripts\Activate.ps1
-          python -m pip install -q --upgrade pip
-          echo "started installing cli beta" 
-          pip install -q --extra-index-url https://azcliprod.blob.core.windows.net/beta/simple/ azure-cli
-          echo "installed cli beta" 
-          echo "$CWD\oidc-venv\Scripts" >> $env:GITHUB_PATH
-
-    - name: Installing Az.accounts for powershell
-      shell: pwsh
-      run: |
-          Install-Module -Name Az.Accounts -Force -AllowClobber -Repository PSGallery
-  
-    - name: OIDC Login to Azure Public Cloud with AzPowershell (enableAzPSSession true)
-      uses: azure/login@v1.4.0
-      with:
-        client-id: ${{ secrets.AZURE_CLIENTID }}
-        tenant-id: ${{ secrets.AZURE_TENANTID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTIONID }} 
-        enable-AzPSSession: true
-
+        
     - name: Build
       run: dotnet build --configuration ${{ env.CONFIGURATION }}
 
@@ -56,6 +29,7 @@ jobs:
 
     - name: Deploy to Azure Function App
       uses: Azure/functions-action@v1
-      with:
+      with: # Set Azure credentials secret as an input
+        credentials: ${{ secrets.AZURE_CREDENTIALS }}
         app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
         package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
