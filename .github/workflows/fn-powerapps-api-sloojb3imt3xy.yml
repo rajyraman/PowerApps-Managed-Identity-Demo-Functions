@@ -3,6 +3,8 @@ on:
   workflow_dispatch:    
   push:
     branches: [ main ]
+    paths-ignore:
+    - '.github/**'    
 env:
   AZURE_FUNCTIONAPP_NAME: fn-powerapps-api-sloojb3imt3xy
   AZURE_FUNCTIONAPP_PACKAGE_PATH: .\.
@@ -24,27 +26,27 @@ jobs:
       run: dotnet restore "${{ env.WORKING_DIRECTORY }}"
 
     - name: Install CLI-beta
-        run: |
-            cd ../..
-            $CWD = Convert-Path .
-            echo $CWD
-            python --version
-            python -m venv oidc-venv
-            . .\oidc-venv\Scripts\Activate.ps1
-            python -m pip install -q --upgrade pip
-            echo "started installing cli beta" 
-            pip install -q --extra-index-url https://azcliprod.blob.core.windows.net/beta/simple/ azure-cli
-            echo "installed cli beta" 
-            echo "$CWD\oidc-venv\Scripts" >> $env:GITHUB_PATH
+      run: |
+          cd ../..
+          $CWD = Convert-Path .
+          echo $CWD
+          python --version
+          python -m venv oidc-venv
+          . .\oidc-venv\Scripts\Activate.ps1
+          python -m pip install -q --upgrade pip
+          echo "started installing cli beta" 
+          pip install -q --extra-index-url https://azcliprod.blob.core.windows.net/beta/simple/ azure-cli
+          echo "installed cli beta" 
+          echo "$CWD\oidc-venv\Scripts" >> $env:GITHUB_PATH
 
     - name: Installing Az.accounts for powershell
-        shell: pwsh
-        run: |
-            Install-Module -Name Az.Accounts -Force -AllowClobber -Repository PSGallery
+      shell: pwsh
+      run: |
+          Install-Module -Name Az.Accounts -Force -AllowClobber -Repository PSGallery
   
     - name: OIDC Login to Azure Public Cloud with AzPowershell (enableAzPSSession true)
-        uses: azure/login@v1.4.0
-        with:
+      uses: azure/login@v1.4.0
+      with:
         client-id: ${{ secrets.AZURE_CLIENTID }}
         tenant-id: ${{ secrets.AZURE_TENANTID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTIONID }} 
