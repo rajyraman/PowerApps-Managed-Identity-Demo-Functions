@@ -31,6 +31,6 @@ jobs:
     - name: Deploy to Azure Function App
       uses: Azure/functions-action@v1
       with: # Set Azure credentials secret as an input
-        credentials: ${{ secrets.AZURE_CREDENTIALS }}
+        publish-profile: ${{ secrets.PUBLISH_PROFILE }}
         app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
         package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
