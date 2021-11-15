@@ -22,10 +22,10 @@ jobs:
         dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
         
     - name: Build
-      run: dotnet build --configuration ${{ env.CONFIGURATION }}
+      run: dotnet build "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }}
 
     - name: Publish
-      run: dotnet publish --configuration ${{ env.CONFIGURATION }} --no-build --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+      run: dotnet publish "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-build --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
 
     - name: Deploy to Azure Function App
       uses: Azure/functions-action@v1
