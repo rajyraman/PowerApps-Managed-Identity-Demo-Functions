@@ -23,7 +23,7 @@ namespace PowerAppsManagedIdentityDemoFunctions
             builder.Services.AddSingleton<IOrganizationService, ServiceClient>(x =>
             {
                 //var managedIdentity = new ManagedIdentityCredential(); //This does not work locally, so changed to below
-                var managedIdentity = new DefaultAzureCredential(); //This does not work locally and live as well. Locally it uses the account on az CLI.
+                var managedIdentity = new DefaultAzureCredential(); //This works locally and live as well. Locally, it uses the account on az CLI.
                 var environment = Environment.GetEnvironmentVariable("PowerApps:EnvironmentUrl");
                 return new ServiceClient(tokenProviderFunction: async u =>
                     (await managedIdentity.GetTokenAsync(
