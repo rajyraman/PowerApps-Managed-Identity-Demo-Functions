@@ -19,6 +19,7 @@ using Azure.Core;
 using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Metadata;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace PowerAppsManagedIdentityDemoFunctions.Functions
 {
@@ -27,11 +28,13 @@ namespace PowerAppsManagedIdentityDemoFunctions.Functions
         private readonly ServiceClient _serviceClient;
         private readonly HttpClient _client;
         private readonly FunctionSettings _settings;
-        public PowerAppsFunction(IOrganizationService serviceClient, IHttpClientFactory httpClientFactory, IOptions<FunctionSettings> options)
+        private readonly IMemoryCache _cache;
+        public PowerAppsFunction(IOrganizationService serviceClient, IHttpClientFactory httpClientFactory, IOptions<FunctionSettings> options, IMemoryCache cache)
         {
             _serviceClient = serviceClient as ServiceClient;
             _client = httpClientFactory.CreateClient();
             _settings = options.Value;
+            _cache = cache;
         }
 
         [FunctionName("entitymetadata")]
@@ -45,8 +48,15 @@ namespace PowerAppsManagedIdentityDemoFunctions.Functions
             ILogger log)
         {
             log.LogInformation($"C# HTTP trigger function processed entitymetadata request for {entityName}.");
-            //Use Service Client, but use AZ Identity to get token
-            var entityMetaData = _serviceClient.GetEntityMetadata(entityName);
+
+            var entityMetaData = _cache.GetOrCreate(
+                    entityName,
+                    cacheEntry =>
+                    {
+                        cacheEntry.SlidingExpiration = TimeSpan.FromSeconds(30);
+                        log.LogInformation($"About to get metadata for {entityName}.");
+                        return _serviceClient.GetEntityMetadata(entityName);  //Use Service Client, but use AZ Identity to get token
+                    });
             return new OkObjectResult(entityMetaData);
 
         }
@@ -66,7 +76,7 @@ namespace PowerAppsManagedIdentityDemoFunctions.Functions
             _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
             var whoAmIResponse = await (await _client.GetAsync($"{_settings.EnvironmentUrl}/api/data/v9.2/WhoAmI()")).Content.ReadAsStringAsync();
             dynamic data = JsonConvert.DeserializeObject(whoAmIResponse);
-            return new OkObjectResult(data);
+            return new OkObjectResult(new WebApiResponse { Response = data, Token = _serviceClient.CurrentAccessToken});
         }
 
         [FunctionName("fetchxml")]
@@ -97,5 +107,11 @@ namespace PowerAppsManagedIdentityDemoFunctions.Functions
     public class InvalidRequest 
     {
         public string Reason { get; set; }
+    }
+
+    public class WebApiResponse
+    {
+        public dynamic Response { get; set; }
+        public string Token { get; set; }
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk;
 using System;
+using System.Threading.Tasks;
 
 [assembly: FunctionsStartup(typeof(PowerAppsManagedIdentityDemoFunctions.Startup))]
 namespace PowerAppsManagedIdentityDemoFunctions
@@ -20,16 +21,21 @@ namespace PowerAppsManagedIdentityDemoFunctions
                 {
                     configuration.GetSection("PowerApps").Bind(settings);
                 });
+            builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<IOrganizationService, ServiceClient>(x =>
             {
-                //var managedIdentity = new ManagedIdentityCredential(); //This does not work locally, so changed to below
-                var managedIdentity = new DefaultAzureCredential(); //This works locally and live as well. Locally, it uses the account on az CLI.
                 var environment = Environment.GetEnvironmentVariable("PowerApps:EnvironmentUrl");
-                return new ServiceClient(tokenProviderFunction: async u =>
-                    (await managedIdentity.GetTokenAsync(
-                        new TokenRequestContext(new[] { $"{environment}/.default" }))).Token, 
+                var managedIdentity = new DefaultAzureCredential(); //This works locally and live as well. Locally, it uses the account on Visual Studio, VSCode, Az CLI
+                return new ServiceClient(
+                        tokenProviderFunction: f => GetToken(environment, managedIdentity),
                         instanceUrl: new Uri(environment));
             });
+        }
+
+        private async Task<string> GetToken(string environment, DefaultAzureCredential credential)
+        {
+            var token = (await credential.GetTokenAsync(new TokenRequestContext(new[] { $"{environment}/.default" })));
+            return token.Token;
         }
     }
 }
