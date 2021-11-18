@@ -53,7 +53,7 @@ namespace PowerAppsManagedIdentityDemoFunctions.Functions
                     entityName,
                     cacheEntry =>
                     {
-                        cacheEntry.SlidingExpiration = TimeSpan.FromSeconds(30);
+                        cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30);
                         log.LogInformation($"About to get metadata for {entityName}.");
                         return _serviceClient.GetEntityMetadata(entityName);  //Use Service Client, but use AZ Identity to get token
                     });
