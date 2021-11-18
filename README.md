@@ -12,7 +12,7 @@ Click this button to deploy Storage Account, App Insights and Function App resou
 </a>
 
 ## Function App Deployment
-The Function App assembly/code has to be deployed from your local machine by running [deploy-function.ps1](./deploy/deploy-function.ps1) and providing the following paramaters.
+The Function App assembly/code has to be deployed from your local machine by running [deploy-function.ps1](./deploy/deploy-function.ps1) and providing the following parameters.
 
 |Name|Mandatory|Description|Default|
 |-|-|-|-|
