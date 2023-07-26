@@ -42,8 +42,6 @@ namespace PowerAppsManagedIdentityDemoFunctions
 
             #endregion
 
-            #region Using ServiceClient for querying Dataverse. This SDK is still is preview. So, don't use in Production
-
             builder.Services.AddSingleton<IOrganizationService, ServiceClient>(provider =>
             {
                 var managedIdentity = provider.GetRequiredService<DefaultAzureCredential>();
@@ -54,8 +52,6 @@ namespace PowerAppsManagedIdentityDemoFunctions
                         instanceUrl: new Uri(environment),
                         useUniqueInstance: true);
             });
-
-            #endregion
         }
 
         private async Task<string> GetToken(string environment, DefaultAzureCredential credential, IMemoryCache cache)

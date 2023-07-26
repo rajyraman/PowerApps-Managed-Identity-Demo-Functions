@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Microsoft.PowerPlatform.Dataverse.Client;
+using Microsoft.PowerPlatform.Dataverse.Client.Extensions;
 using Microsoft.Xrm.Sdk;
 using Newtonsoft.Json;
 using PowerAppsManagedIdentityDemoFunctions.Functions.Models;
@@ -39,6 +40,7 @@ namespace PowerAppsManagedIdentityDemoFunctions.Functions
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
         [OpenApiParameter(name: "entityName", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The entity to retrieve metadata for")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Description = "Response with entity metadata")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Summary = "Invalid entity")]
         public ActionResult EntityMetadata(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "entity/{entityName}")] HttpRequest req,
             string entityName,
@@ -54,6 +56,9 @@ namespace PowerAppsManagedIdentityDemoFunctions.Functions
                         log.LogInformation($"About to get metadata for {entityName}.");
                         return _serviceClient.GetEntityMetadata(entityName);
                     });
+            if (entityMetaData == null)
+                return new BadRequestObjectResult($"{entityName} does not exist");
+
             return new OkObjectResult(entityMetaData);
 
         }
