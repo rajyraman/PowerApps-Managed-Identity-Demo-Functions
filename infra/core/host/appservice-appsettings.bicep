@@ -6,10 +6,9 @@ param appSettings object
 
 resource appService 'Microsoft.Web/sites@2022-03-01' existing = {
   name: name
-}
 
-resource settings 'Microsoft.Web/sites/config@2022-03-01' = {
-  name: 'appsettings'
-  parent: appService
-  properties: appSettings
+  resource configAppSettings 'config' = {
+    name: 'appsettings'
+    properties: appSettings
+  }
 }

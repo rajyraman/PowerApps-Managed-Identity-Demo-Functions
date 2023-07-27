@@ -29,7 +29,7 @@ namespace PowerAppsManagedIdentityDemoFunctions
             builder.Services.AddHttpClient("PowerAppsClient", async (provider, httpClient) =>
             {
                 var managedIdentity = provider.GetRequiredService<DefaultAzureCredential>();
-                var environment = Environment.GetEnvironmentVariable("PowerApps:EnvironmentUrl");
+                var environment = Environment.GetEnvironmentVariable("DATAVERSE_URL");
                 var cache = provider.GetService<IMemoryCache>();
                 httpClient.BaseAddress = new Uri($"{environment}/api/data/v9.2/");
                 httpClient.DefaultRequestHeaders.Add(HeaderNames.Accept, "application/json");
@@ -45,7 +45,7 @@ namespace PowerAppsManagedIdentityDemoFunctions
             builder.Services.AddSingleton<IOrganizationService, ServiceClient>(provider =>
             {
                 var managedIdentity = provider.GetRequiredService<DefaultAzureCredential>();
-                var environment = Environment.GetEnvironmentVariable("PowerApps:EnvironmentUrl");
+                var environment = Environment.GetEnvironmentVariable("DATAVERSE_URL");
                 var cache = provider.GetService<IMemoryCache>();
                 return new ServiceClient(
                         tokenProviderFunction: f => GetToken(environment, managedIdentity, cache),
@@ -56,7 +56,8 @@ namespace PowerAppsManagedIdentityDemoFunctions
 
         private async Task<string> GetToken(string environment, DefaultAzureCredential credential, IMemoryCache cache)
         {
-            var accessToken = await cache.GetOrCreateAsync(environment, async (cacheEntry) => {
+            var accessToken = await cache.GetOrCreateAsync(environment, async (cacheEntry) =>
+            {
                 cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(50);
                 var token = (await credential.GetTokenAsync(new TokenRequestContext(new[] { $"{environment}/.default" })));
                 return token;

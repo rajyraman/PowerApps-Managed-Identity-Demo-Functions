@@ -13,17 +13,17 @@ param location string
 // "resourceGroupName": {
 //      "value": "myGroupName"
 // }
-param apiServiceName string = ''
 param applicationInsightsDashboardName string = ''
 param applicationInsightsName string = ''
 param appServicePlanName string = ''
-param keyVaultName string = ''
 param logAnalyticsName string = ''
 param resourceGroupName string = ''
-param webServiceName string = ''
+param storageAccountName string = ''
+param vNetName string = ''
+param dataverseUrl string
 
-@description('Id of the user or app to assign application roles')
-param principalId string = ''
+@description('Allowed locations for service endpoint in VNet e.g. australiaeast,australiasoutheast')
+param allowedLocations string
 
 var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
@@ -36,55 +36,25 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
-// The application frontend
-module web './app/web.bicep' = {
-  name: 'web'
+module vnet 'core/network/vnet.bicep' = {
+  name: 'vnet'
   scope: rg
   params: {
-    name: !empty(webServiceName) ? webServiceName : '${abbrs.webSitesAppService}web-${resourceToken}'
+    name: !empty(vNetName) ? vNetName : '${abbrs.networkVirtualNetworks}${resourceToken}'
     location: location
     tags: tags
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
-    appServicePlanId: appServicePlan.outputs.id
+    allowedLocations: split(allowedLocations, ',')
   }
 }
-
-module webAppSettings './core/host/appservice-appsettings.bicep' = {
-  name: 'web-appsettings'
+// Backing storage for Azure functions backend API
+module storage './core/storage/storage-account.bicep' = {
+  name: 'storage'
   scope: rg
   params: {
-    name: web.outputs.SERVICE_WEB_NAME
-    appSettings: {
-      REACT_APP_APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
-    }
-  }
-}
-
-// The application backend
-module api './app/api.bicep' = {
-  name: 'api'
-  scope: rg
-  params: {
-    name: !empty(apiServiceName) ? apiServiceName : '${abbrs.webSitesAppService}api-${resourceToken}'
+    name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
     location: location
     tags: tags
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
-    appServicePlanId: appServicePlan.outputs.id
-    keyVaultName: keyVault.outputs.name
-    allowedOrigins: [ web.outputs.SERVICE_WEB_URI ]
-    appSettings: {
-      API_ALLOW_ORIGINS: web.outputs.SERVICE_WEB_URI
-    }
-  }
-}
-
-// Give the API access to KeyVault
-module apiKeyVaultAccess './core/security/keyvault-access.bicep' = {
-  name: 'api-keyvault-access'
-  scope: rg
-  params: {
-    keyVaultName: keyVault.outputs.name
-    principalId: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
+    subnet: vnet.outputs.logicAppsSubnet
   }
 }
 
@@ -96,21 +66,12 @@ module appServicePlan './core/host/appserviceplan.bicep' = {
     name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
     location: location
     tags: tags
+    kind: 'elastic'
     sku: {
-      name: 'B1'
+      name: 'EP1'
+      tier: 'ElasticPremium'
+      family: 'EP'
     }
-  }
-}
-
-// Store secrets in a keyvault
-module keyVault './core/security/keyvault.bicep' = {
-  name: 'keyvault'
-  scope: rg
-  params: {
-    name: !empty(keyVaultName) ? keyVaultName : '${abbrs.keyVaultVaults}${resourceToken}'
-    location: location
-    tags: tags
-    principalId: principalId
   }
 }
 
@@ -127,13 +88,23 @@ module monitoring './core/monitor/monitoring.bicep' = {
   }
 }
 
-// Data outputs
+module functions 'core/host/functions.bicep' = {
+  name: 'functions-app'
+  scope: rg
+  params: {
+    name: '${abbrs.webSitesFunctions}${environmentName}-${resourceToken}'
+    location: location
+    appServicePlanId: appServicePlan.outputs.id
+    storageAccountName: storage.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    tags: union(tags, { 'azd-service-name': 'api' })
+    subnetId: vnet.outputs.logicAppsSubnet
+    appSettings: { DATAVERSE_URL: dataverseUrl }
+  }
+}
 
 // App outputs
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
-output AZURE_KEY_VAULT_ENDPOINT string = keyVault.outputs.endpoint
-output AZURE_KEY_VAULT_NAME string = keyVault.outputs.name
+output FUNCTIONS_NAME string = functions.outputs.name
 output AZURE_LOCATION string = location
-output AZURE_TENANT_ID string = tenant().tenantId
-output REACT_APP_APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
-output REACT_APP_WEB_BASE_URL string = web.outputs.SERVICE_WEB_URI
+output AZURE_TENANT_ID string = subscription().tenantId

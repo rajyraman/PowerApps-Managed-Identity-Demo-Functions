@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "environmentName": {
@@ -8,8 +8,11 @@
     "location": {
       "value": "${AZURE_LOCATION}"
     },
-    "principalId": {
-      "value": "${AZURE_PRINCIPAL_ID}"
+    "dataverseUrl": {
+      "value": "${DATAVERSE_URL}"
+    },
+    "allowedLocations": {
+      "value": "${ALLOWED_LOCATIONS}"
     }
   }
 }
