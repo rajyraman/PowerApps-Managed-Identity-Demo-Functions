@@ -1,5 +1,10 @@
 on:
   workflow_dispatch:
+    inputs:
+      provision_infra:
+        description: "Provision to Azure?"
+        default: true
+        type: boolean
   push:
     # Run when commits are pushed to mainline branch (main or master)
     # Set this to the mainline branch you are using
@@ -39,7 +44,7 @@ jobs:
       - name: Install PAC
         run: dotnet tool install --global Microsoft.PowerApps.CLI.Tool
 
-      - name: Log in with Azure (Federated Credentials)
+      - name: Log in with azd (Federated Credentials)
         if: ${{ env.AZURE_CLIENT_ID != '' }}
         run: |
           azd auth login `
@@ -48,7 +53,15 @@ jobs:
             --tenant-id "$Env:AZURE_TENANT_ID"
         shell: pwsh
 
-      - name: Log in with Azure (Client Credentials)
+      - name: "Az CLI login"
+        uses: azure/login@v1
+        if: ${{ env.AZURE_CLIENT_ID != '' }}
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in with azd (Client Credentials)
         if: ${{ env.AZURE_CREDENTIALS != '' }}
         run: |
           $info = $Env:AZURE_CREDENTIALS | ConvertFrom-Json -AsHashtable;
@@ -64,6 +77,7 @@ jobs:
 
       - name: Provision Infrastructure
         run: azd provision --no-prompt
+        if: inputs.provision_infra
         env:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
