@@ -6,6 +6,9 @@ on:
     branches:
       - main
       - master
+    paths:
+      - "infra/**"
+      - "src/**"
 
 # GitHub Actions workflow to deploy to Azure using azd
 # To configure required secrets for connecting to Azure, simply run `azd pipeline config`
@@ -17,7 +20,10 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  provision_and_deploy:
+    defaults:
+      run:
+        shell: pwsh
     runs-on: ubuntu-latest
     env:
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
@@ -46,7 +52,11 @@ jobs:
             --client-id "$Env:AZURE_CLIENT_ID" `
             --federated-credential-provider "github" `
             --tenant-id "$Env:AZURE_TENANT_ID"
-        shell: pwsh
+
+      - name: Setup pac auth
+        run: |
+          pac auth clear
+          pac auth create -u ${{ vars.DATAVERSE_URL }} -id ${{ env.AZURE_CLIENT_ID }} -cs ${{ secrets.DATAVERSE_CLIENT_SECRET }} -t ${{ env.AZURE_TENANT_ID }}
 
       - name: "Az CLI login"
         uses: azure/login@v1
@@ -66,7 +76,6 @@ jobs:
             --client-id "$($info.clientId)" `
             --client-secret "$($info.clientSecret)" `
             --tenant-id "$($info.tenantId)"
-        shell: pwsh
         env:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
@@ -76,7 +85,7 @@ jobs:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          ALLOWED_LOCATIONS: ${{ vars.ALLOWED_LOCATIONS }}
+          SERVICE_ENDPOINT_STORAGE_LOCATIONS: ${{ vars.SERVICE_ENDPOINT_STORAGE_LOCATIONS }}
           DATAVERSE_URL: ${{ vars.DATAVERSE_URL }}
 
       - name: Deploy Application

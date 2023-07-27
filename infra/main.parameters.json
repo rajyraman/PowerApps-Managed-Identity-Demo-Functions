@@ -11,8 +11,8 @@
     "dataverseUrl": {
       "value": "${DATAVERSE_URL}"
     },
-    "allowedLocations": {
-      "value": "${ALLOWED_LOCATIONS}"
+    "serviceEndpointStorageLocations": {
+      "value": "${SERVICE_ENDPOINT_STORAGE_LOCATIONS}"
     }
   }
 }

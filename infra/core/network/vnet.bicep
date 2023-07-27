@@ -2,7 +2,7 @@ param location string = resourceGroup().location
 @description('Name of the VNet to be created')
 param name string
 param tags object = {}
-param allowedLocations string[]
+param serviceEndpointStorageLocations string[]
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   name: name
@@ -16,12 +16,12 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
     }
     subnets: [
       {
-        name: 'logicapps'
+        name: 'functionApp'
         properties: {
           addressPrefix: '10.0.0.0/24'
           serviceEndpoints: [
             {
-              locations: allowedLocations
+              locations: serviceEndpointStorageLocations
               service: 'Microsoft.Storage'
             }
           ]
@@ -39,5 +39,5 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   }
 }
 
-output logicAppsSubnet string = virtualNetwork.properties.subnets[0].id
+output functionAppSubnet string = virtualNetwork.properties.subnets[0].id
 output name string = virtualNetwork.name

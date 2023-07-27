@@ -22,8 +22,8 @@ param storageAccountName string = ''
 param vNetName string = ''
 param dataverseUrl string
 
-@description('Allowed locations for service endpoint in VNet e.g. australiaeast,australiasoutheast')
-param allowedLocations string
+@description('Locations for service endpoint in VNet e.g. australiaeast,australiasoutheast')
+param serviceEndpointStorageLocations string
 
 var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
@@ -43,7 +43,7 @@ module vnet 'core/network/vnet.bicep' = {
     name: !empty(vNetName) ? vNetName : '${abbrs.networkVirtualNetworks}${resourceToken}'
     location: location
     tags: tags
-    allowedLocations: split(allowedLocations, ',')
+    serviceEndpointStorageLocations: split(serviceEndpointStorageLocations, ',')
   }
 }
 // Backing storage for Azure functions backend API
@@ -54,7 +54,7 @@ module storage './core/storage/storage-account.bicep' = {
     name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
     location: location
     tags: tags
-    subnet: vnet.outputs.logicAppsSubnet
+    subnet: vnet.outputs.functionAppSubnet
   }
 }
 
@@ -98,7 +98,7 @@ module functions 'core/host/functions.bicep' = {
     storageAccountName: storage.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     tags: union(tags, { 'azd-service-name': 'api' })
-    subnetId: vnet.outputs.logicAppsSubnet
+    subnetId: vnet.outputs.functionAppSubnet
     appSettings: { DATAVERSE_URL: dataverseUrl }
   }
 }
