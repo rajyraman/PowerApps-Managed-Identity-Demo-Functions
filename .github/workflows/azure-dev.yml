@@ -77,7 +77,7 @@ jobs:
 
       - name: Provision Infrastructure
         run: azd provision --no-prompt
-        if: inputs.provision_infra == true
+        if: inputs.provision_infra != false
         env:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
