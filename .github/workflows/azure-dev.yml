@@ -1,9 +1,5 @@
 on:
   workflow_dispatch:
-    inputs:
-      provision_infra:
-        description: "Provision to Azure?"
-        type: boolean
   push:
     # Run when commits are pushed to mainline branch (main or master)
     # Set this to the mainline branch you are using
@@ -76,7 +72,6 @@ jobs:
 
       - name: Provision Infrastructure
         run: azd provision --no-prompt
-        if: inputs.provision_infra != false
         env:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
