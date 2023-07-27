@@ -31,6 +31,14 @@ jobs:
       - name: Install azd
         uses: Azure/setup-azd@v0.1.0
 
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
+
+      - name: Install PAC
+        run: dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+
       - name: Log in with Azure (Federated Credentials)
         if: ${{ env.AZURE_CLIENT_ID != '' }}
         run: |
