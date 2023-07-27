@@ -30,7 +30,9 @@ steps:
       AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
       AZURE_ENV_NAME: $(AZURE_ENV_NAME)
       AZURE_LOCATION: $(AZURE_LOCATION)
-      
+      DATAVERSE_URL: $(DATAVERSE_URL)
+      ALLOWED_LOCATIONS: $(ALLOWED_LOCATIONS)
+
   - task: AzureCLI@2
     displayName: Deploy Application
     inputs:
