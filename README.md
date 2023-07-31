@@ -25,7 +25,7 @@ You also do it all in once (create Azure resources and deploy the Function App c
 |Name|Mandatory|Description|Default|
 |-|-|-|-|
 |resourceGroup|No|Name of the new Resource Group where you would like the resources deployed to|rgazfunc|
-|location|No|Azure location where you would like the Resource Group to be created in|australiasoutheast|
+|location|No|Azure location where you would like the Resource Group to be created in. For a complete list of locations you can use run ```Connect-AzAccount``` then ```Get-AzLocation \| Format-Table``` in powershell.|australiasoutheast|
 |environmentUrl|Yes|URL of your Power Apps Environment e.g. https://org.crm.dynamics.com||
 |createApplicationUser|No|Create the Managed Identity of the Function App as an Application User in the Power Apps Environment|$false|
 
