@@ -16,8 +16,10 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
     }
     subnets: [
       {
-        name: 'functionApp'
+        name: 'snet-functionapp'
         properties: {
+          privateEndpointNetworkPolicies: 'Enabled'
+          privateLinkServiceNetworkPolicies: 'Enabled'
           addressPrefix: '10.0.0.0/24'
           serviceEndpoints: [
             {
@@ -35,9 +37,18 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
           ]
         }
       }
+      {
+        name: 'snet-privatelink'
+        properties: {
+          privateEndpointNetworkPolicies: 'Disabled'
+          privateLinkServiceNetworkPolicies: 'Enabled'
+          addressPrefix: '10.0.1.0/24'
+        }
+      }
     ]
   }
 }
 
 output functionAppSubnet string = virtualNetwork.properties.subnets[0].id
+output privateLinkSubnet string = virtualNetwork.properties.subnets[1].id
 output name string = virtualNetwork.name

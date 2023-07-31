@@ -13,11 +13,9 @@ param allowedOrigins array = []
 param alwaysOn bool = false
 param appSettings object = {}
 param clientAffinityEnabled bool = false
-param enableOryxBuild bool = contains(kind, 'linux')
 param functionAppScaleLimit int = -1
 param minimumElasticInstanceCount int = -1
 param numberOfWorkers int = -1
-param scmDoBuildDuringDeployment bool = false
 param use32BitWorkerProcess bool = false
 param ftpsState string = 'FtpsOnly'
 param healthCheckPath string = ''
@@ -31,6 +29,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlanId
     siteConfig: {
+      netFrameworkVersion: 'v6.0'
       functionsRuntimeScaleMonitoringEnabled: false //if this is not set to false, deployment will fail.
       alwaysOn: alwaysOn
       ftpsState: ftpsState
@@ -53,13 +52,22 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
 
   identity: { type: 'SystemAssigned' }
 
-  resource configLogs 'config' = {
-    name: 'logs'
+  //If this is not commented out, deployment will fail with "Storage access failed. Storage volume is currently in R/O mode". Leaving this as a comment for people searching this issue.
+  // resource configLogs 'config' = {
+  //   name: 'logs'
+  //   properties: {
+  //     applicationLogs: { fileSystem: { level: 'Verbose' } }
+  //     detailedErrorMessages: { enabled: true }
+  //     failedRequestsTracing: { enabled: true }
+  //     httpLogs: { fileSystem: { enabled: true, retentionInDays: 1, retentionInMb: 35 } }
+  //   }
+  // }
+
+  resource networkConfig 'networkConfig@2022-03-01' = {
+    name: 'virtualNetwork'
     properties: {
-      applicationLogs: { fileSystem: { level: 'Verbose' } }
-      detailedErrorMessages: { enabled: true }
-      failedRequestsTracing: { enabled: true }
-      httpLogs: { fileSystem: { enabled: true, retentionInDays: 1, retentionInMb: 35 } }
+      subnetResourceId: subnetId
+      swiftSupported: true
     }
   }
 }
@@ -69,20 +77,6 @@ module config 'appservice-appsettings.bicep' = if (!empty(appSettings)) {
   params: {
     name: appService.name
     appSettings: union(appSettings,
-      {
-        SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
-        ENABLE_ORYX_BUILD: string(enableOryxBuild)
-        FUNCTIONS_EXTENSION_VERSION: '~4'
-        FUNCTIONS_WORKER_RUNTIME: 'dotnet'
-        WEBSITE_NODE_DEFAULT_VERSION: '~18'
-        APP_KIND: 'functionapp'
-        OpenApi__HideSwaggerUI: 'false'
-        OpenApi__AuthLevel__UI: 'Anonymous'
-        OpenApi__AuthLevel__Document: 'Anonymous'
-        PreferConnectionAffinity: false
-        WEBSITE_CONTENTOVERVNET: 1
-        WEBSITE_DNS_SERVER: '168.63.129.16'
-      },
       !empty(applicationInsightsName) ? { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString } : {})
   }
 }

@@ -13,11 +13,9 @@ param kind string = 'functionapp'
 // Microsoft.Web/sites/config
 param appSettings object = {}
 param clientAffinityEnabled bool = false
-param enableOryxBuild bool = contains(kind, 'linux')
 param functionAppScaleLimit int = -1
 param minimumElasticInstanceCount int = -1
 param numberOfWorkers int = -1
-param scmDoBuildDuringDeployment bool = true
 param use32BitWorkerProcess bool = false
 param subnetId string
 module functions 'appservice.bicep' = {
@@ -31,15 +29,19 @@ module functions 'appservice.bicep' = {
     appSettings: union(appSettings, {
         AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
-        WEBSITE_CONTENTSHARE: '${name}-functions'
+        WEBSITE_CONTENTSHARE: name
+        FUNCTIONS_EXTENSION_VERSION: '~4'
+        FUNCTIONS_WORKER_RUNTIME: 'dotnet'
+        WEBSITE_CONTENTOVERVNET: '1'
+        OpenApi__HideSwaggerUI: 'false'
+        OpenApi__AuthLevel__UI: 'Anonymous'
+        OpenApi__AuthLevel__Document: 'Anonymous'
       })
     clientAffinityEnabled: clientAffinityEnabled
-    enableOryxBuild: enableOryxBuild
     functionAppScaleLimit: functionAppScaleLimit
     kind: kind
     minimumElasticInstanceCount: minimumElasticInstanceCount
     numberOfWorkers: numberOfWorkers
-    scmDoBuildDuringDeployment: scmDoBuildDuringDeployment
     use32BitWorkerProcess: use32BitWorkerProcess
     subnetId: subnetId
   }

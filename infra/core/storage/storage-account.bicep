@@ -1,6 +1,7 @@
 param name string
 param location string = resourceGroup().location
 param tags object = {}
+param shareName string
 
 @allowed([
   'Cool'
@@ -10,9 +11,7 @@ param accessTier string = 'Hot'
 param allowBlobPublicAccess bool = true
 param allowCrossTenantReplication bool = true
 param allowSharedKeyAccess bool = true
-param containers array = []
 param defaultToOAuthAuthentication bool = false
-param deleteRetentionPolicy object = {}
 
 @allowed([ 'AzureDnsZone', 'Standard' ])
 param dnsEndpointType string = 'Standard'
@@ -52,17 +51,21 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     publicNetworkAccess: publicNetworkAccess
   }
 
-  resource blobServices 'blobServices' = if (!empty(containers)) {
+  resource fileServices 'fileServices' = {
     name: 'default'
     properties: {
-      deleteRetentionPolicy: deleteRetentionPolicy
-    }
-    resource container 'containers' = [for container in containers: {
-      name: container.name
-      properties: {
-        publicAccess: contains(container, 'publicAccess') ? container.publicAccess : 'None'
+      shareDeleteRetentionPolicy: {
+        enabled: false
       }
-    }]
+    }
+    resource share 'shares' = {
+      name: shareName
+      properties: {
+        accessTier: 'TransactionOptimized'
+        shareQuota: 5120
+        enabledProtocols: 'SMB'
+      }
+    }
   }
 }
 

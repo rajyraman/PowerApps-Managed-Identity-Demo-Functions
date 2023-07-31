@@ -47,6 +47,7 @@ module vnet 'core/network/vnet.bicep' = {
     serviceEndpointStorageLocations: split(serviceEndpointStorageLocations, ',')
   }
 }
+
 // Backing storage for Azure functions backend API
 module storage './core/storage/storage-account.bicep' = {
   name: 'storage'
@@ -56,6 +57,7 @@ module storage './core/storage/storage-account.bicep' = {
     location: location
     tags: tags
     subnet: vnet.outputs.functionAppSubnet
+    shareName: functionName
   }
 }
 
@@ -100,7 +102,19 @@ module functions 'core/host/functions.bicep' = {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     tags: union(tags, { 'azd-service-name': 'api' })
     subnetId: vnet.outputs.functionAppSubnet
-    appSettings: { DATAVERSE_URL: dataverseUrl }
+    appSettings: {
+      DATAVERSE_URL: dataverseUrl
+    }
+  }
+}
+
+module privatelink 'core/network/privatelink.bicep' = {
+  name: 'privatelink'
+  scope: rg
+  params: {
+    storageAccountName: storage.outputs.name
+    vnetName: vnet.outputs.name
+    location: location
   }
 }
 
