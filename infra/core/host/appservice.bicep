@@ -80,6 +80,8 @@ module config 'appservice-appsettings.bicep' = if (!empty(appSettings)) {
         OpenApi__AuthLevel__UI: 'Anonymous'
         OpenApi__AuthLevel__Document: 'Anonymous'
         PreferConnectionAffinity: false
+        WEBSITE_CONTENTOVERVNET: 1
+        WEBSITE_DNS_SERVER: '168.63.129.16'
       },
       !empty(applicationInsightsName) ? { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString } : {})
   }

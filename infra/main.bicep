@@ -28,6 +28,7 @@ param serviceEndpointStorageLocations string
 var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = { 'azd-env-name': environmentName }
+var functionName = '${abbrs.webSitesFunctions}${environmentName}-${resourceToken}'
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -92,7 +93,7 @@ module functions 'core/host/functions.bicep' = {
   name: 'functions-app'
   scope: rg
   params: {
-    name: '${abbrs.webSitesFunctions}${environmentName}-${resourceToken}'
+    name: functionName
     location: location
     appServicePlanId: appServicePlan.outputs.id
     storageAccountName: storage.outputs.name
