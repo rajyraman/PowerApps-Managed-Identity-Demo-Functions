@@ -99,8 +99,8 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           SERVICE_ENDPOINT_STORAGE_LOCATIONS: ${{ vars.SERVICE_ENDPOINT_STORAGE_LOCATIONS }}
           DATAVERSE_URL: ${{ vars.DATAVERSE_URL }}
-          CREATE_PRIVATE_LINK: ${{ vars.CREATE_PRIVATE_LINK || true }}
-          CREATE_VNET: ${{ vars.CREATE_VNET || true }}
+          CREATE_PRIVATE_LINK: ${{ vars.CREATE_PRIVATE_LINK || 'true' }}
+          CREATE_VNET: ${{ vars.CREATE_VNET || 'true' }}
 
       - name: Deploy Application
         run: azd deploy --no-prompt
