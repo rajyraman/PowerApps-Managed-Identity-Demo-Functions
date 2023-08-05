@@ -32,6 +32,8 @@ steps:
       AZURE_LOCATION: $(AZURE_LOCATION)
       DATAVERSE_URL: $(DATAVERSE_URL)
       SERVICE_ENDPOINT_STORAGE_LOCATIONS: $(SERVICE_ENDPOINT_STORAGE_LOCATIONS)
+      CREATE_VNET: $[coalesce($(CREATE_VNET), true)]
+      CREATE_PRIVATE_LINK: $[coalesce($(CREATE_PRIVATE_LINK), true)]
 
   - task: AzureCLI@2
     displayName: Deploy Application

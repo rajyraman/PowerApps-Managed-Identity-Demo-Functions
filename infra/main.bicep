@@ -2,12 +2,25 @@ targetScope = 'subscription'
 
 @minLength(1)
 @maxLength(64)
-@description('Name of the the environment which is used to generate a short unique hash used in all resources.')
+@description(
+  'Name of the the environment which is used to generate a short unique hash used in all resources.'
+)
 param environmentName string
 
 @minLength(1)
 @description('Primary location for all resources')
 param location string
+
+@description(
+  'Locations for service endpoint in VNet e.g. australiaeast,australiasoutheast'
+)
+param serviceEndpointStorageLocations string
+
+@description('Is VNet isolation needed?')
+param createVNet bool
+
+@description('Create Private Endpoint and Private Link to Storage Account?')
+param createPrivateLink bool
 
 // Optional parameters to override the default azd resource naming conventions. Update the main.parameters.json file to provide values. e.g.,:
 // "resourceGroupName": {
@@ -22,11 +35,10 @@ param storageAccountName string = ''
 param vNetName string = ''
 param dataverseUrl string
 
-@description('Locations for service endpoint in VNet e.g. australiaeast,australiasoutheast')
-param serviceEndpointStorageLocations string
-
 var abbrs = loadJsonContent('./abbreviations.json')
-var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
+var resourceToken = toLower(
+  uniqueString(subscription().id, environmentName, location)
+)
 var tags = { 'azd-env-name': environmentName }
 var functionName = '${abbrs.webSitesFunctions}${environmentName}-${resourceToken}'
 
@@ -37,7 +49,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
-module vnet 'core/network/vnet.bicep' = {
+module vnet 'core/network/vnet.bicep' = if (createVNet || createPrivateLink) {
   name: 'vnet'
   scope: rg
   params: {
@@ -56,7 +68,8 @@ module storage './core/storage/storage-account.bicep' = {
     name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
     location: location
     tags: tags
-    subnet: vnet.outputs.functionAppSubnet
+    subnet: createVNet ? vnet.outputs.functionAppSubnet : ''
+    publicNetworkAccess: createVNet ? 'Disabled' : 'Enabled'
     shareName: functionName
   }
 }
@@ -69,11 +82,15 @@ module appServicePlan './core/host/appserviceplan.bicep' = {
     name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
     location: location
     tags: tags
-    kind: 'elastic'
-    sku: {
+    kind: createVNet ? 'elastic' : ''
+    sku: createVNet ? {
       name: 'EP1'
       tier: 'ElasticPremium'
       family: 'EP'
+    } : {
+      name: 'Y1'
+      tier: 'Dynamic'
+      family: 'Y'
     }
   }
 }
@@ -101,19 +118,19 @@ module functions 'core/host/functions.bicep' = {
     storageAccountName: storage.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     tags: union(tags, { 'azd-service-name': 'api' })
-    subnetId: vnet.outputs.functionAppSubnet
+    subnetId: createVNet ? vnet.outputs.functionAppSubnet : ''
     appSettings: {
       DATAVERSE_URL: dataverseUrl
     }
   }
 }
 
-module privatelink 'core/network/privatelink.bicep' = {
+module privatelink 'core/network/privatelink.bicep' = if (createPrivateLink) {
   name: 'privatelink'
   scope: rg
   params: {
     storageAccountName: storage.outputs.name
-    vnetName: vnet.outputs.name
+    vnetName: createPrivateLink ? vnet.outputs.name : '' //Need this ternary condition. Otherwise ARM spits out error during compilation. See https://github.com/Azure/bicep/issues/3990#issue-967101559
     location: location
   }
 }

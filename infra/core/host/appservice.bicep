@@ -45,9 +45,9 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
     }
     clientAffinityEnabled: clientAffinityEnabled
     httpsOnly: true
-    vnetRouteAllEnabled: true
-    vnetContentShareEnabled: true
-    virtualNetworkSubnetId: subnetId
+    vnetRouteAllEnabled: empty(subnetId) ? false : true
+    vnetContentShareEnabled: empty(subnetId) ? false : true
+    virtualNetworkSubnetId: empty(subnetId) ? null : subnetId
   }
 
   identity: { type: 'SystemAssigned' }
@@ -63,7 +63,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   //   }
   // }
 
-  resource networkConfig 'networkConfig@2022-03-01' = {
+  resource networkConfig 'networkConfig@2022-03-01' = if (!empty(subnetId)) {
     name: 'virtualNetwork'
     properties: {
       subnetResourceId: subnetId

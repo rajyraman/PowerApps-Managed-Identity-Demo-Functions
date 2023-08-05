@@ -38,7 +38,9 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     defaultToOAuthAuthentication: defaultToOAuthAuthentication
     dnsEndpointType: dnsEndpointType
     minimumTlsVersion: minimumTlsVersion
-    networkAcls: {
+    networkAcls: empty(subnet) ? {
+      defaultAction: 'Allow'
+    } : {
       bypass: 'AzureServices'
       defaultAction: 'Deny'
       virtualNetworkRules: [

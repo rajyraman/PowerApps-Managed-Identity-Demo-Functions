@@ -8,11 +8,11 @@
     "location": {
       "value": "${AZURE_LOCATION}"
     },
-    "dataverseUrl": {
-      "value": "${DATAVERSE_URL}"
-    },
     "serviceEndpointStorageLocations": {
       "value": "${SERVICE_ENDPOINT_STORAGE_LOCATIONS}"
+    },
+    "dataverseUrl": {
+      "value": "${DATAVERSE_URL}"
     }
   }
 }
