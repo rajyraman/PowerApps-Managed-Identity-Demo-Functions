@@ -45,9 +45,6 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
 
-      - name: Install PAC
-        run: dotnet tool install --global Microsoft.PowerApps.CLI.Tool
-
       - name: Log in with azd (Federated Credentials)
         if: ${{ env.AZURE_CLIENT_ID != '' }}
         run: |
@@ -55,11 +52,6 @@ jobs:
             --client-id "$Env:AZURE_CLIENT_ID" `
             --federated-credential-provider "github" `
             --tenant-id "$Env:AZURE_TENANT_ID"
-
-      - name: Setup pac auth
-        run: |
-          pac auth clear
-          pac auth create -u ${{ vars.DATAVERSE_URL }} -id ${{ env.AZURE_CLIENT_ID }} -cs ${{ secrets.DATAVERSE_CLIENT_SECRET }} -t ${{ env.AZURE_TENANT_ID }}
 
       - name: "Az CLI login"
         uses: azure/login@v1
