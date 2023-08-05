@@ -1,8 +1,5 @@
 {
     "experimentalFeaturesEnabled": {
-        "userDefinedTypes": true,
-        "prettyPrinting": false,
-        "testFramework": false,
-        "asserts": false
+        "userDefinedTypes": true
     }
 }

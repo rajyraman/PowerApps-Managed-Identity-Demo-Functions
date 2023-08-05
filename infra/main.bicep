@@ -44,13 +44,13 @@ var resourceToken = toLower(
 var tags = { 'azd-env-name': environmentName }
 var functionName = '${abbrs.webSitesFunctions}${environmentName}-${resourceToken}'
 
-// Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
   location: location
   tags: tags
 }
 
+//VNet for Azure Functions not in Consumption Plan
 module vnet 'core/network/vnet.bicep' = if (createVNet || createPrivateLink) {
   name: 'vnet'
   scope: rg
@@ -132,7 +132,7 @@ module privatelink 'core/network/privatelink.bicep' = if (createPrivateLink) {
   scope: rg
   params: {
     storageAccountName: storage.outputs.name
-    vnetName: createPrivateLink ? vnet.outputs.name : '' //Need this ternary condition. Otherwise ARM spits out error during compilation. See https://github.com/Azure/bicep/issues/3990#issue-967101559
+    vnetName: createPrivateLink ? vnet.outputs.name : '' //Need this ternary condition. Otherwise bicep compiler spits out ARM error. See https://github.com/Azure/bicep/issues/3990#issue-967101559
     location: location
   }
 }
