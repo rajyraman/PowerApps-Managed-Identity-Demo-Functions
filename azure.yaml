@@ -6,6 +6,10 @@ hooks:
     shell: pwsh
     interactive: true
     run: ./hooks/postprovision.ps1
+  postdeploy:
+    shell: pwsh
+    interactive: true
+    run: ./hooks/postdeploy.ps1
 services:
   api:
     project: ./src
