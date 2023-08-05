@@ -12,13 +12,13 @@
       "value": "${SERVICE_ENDPOINT_STORAGE_LOCATIONS}"
     },
     "createVNet": {
-      "value": ${CREATE_VNET}
+      "value": "${CREATE_VNET}"
     },
     "createPrivateLink": {
-      "value": ${CREATE_PRIVATE_LINK}
+      "value": "${CREATE_PRIVATE_LINK}"
     },
     "dataverseUrl": {
       "value": "${DATAVERSE_URL}"
-    }    
+    }
   }
 }

@@ -17,10 +17,12 @@ param location string
 param serviceEndpointStorageLocations string
 
 @description('Is VNet isolation needed?')
-param createVNet bool
+param createVNetString string = 'true'
+var createVNet = bool(createVNetString)
 
 @description('Create Private Endpoint and Private Link to Storage Account?')
-param createPrivateLink bool
+param createPrivateLinkString string = 'true'
+var createPrivateLink = bool(createPrivateLinkString)
 
 // Optional parameters to override the default azd resource naming conventions. Update the main.parameters.json file to provide values. e.g.,:
 // "resourceGroupName": {
