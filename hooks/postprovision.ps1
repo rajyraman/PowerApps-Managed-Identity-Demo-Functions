@@ -7,9 +7,6 @@ foreach ($line in $output) {
 }
 $functionAppId = az ad sp list --filter "displayName eq '$env:FUNCTIONS_NAME'" --query '[].appId' --output tsv;
 if ($null -ne $env:CI) {
-  # Set FUNCTIONS_NAME as a variable on the environment
-  gh variable set FUNCTIONS_NAME --env $env:GITHUB_ENV_NAME --body $env:FUNCTIONS_NAME
-
   $token = az account get-access-token --resource=https://api.bap.microsoft.com/ --query accessToken --output tsv
   $headers = @{
     Authorization = "Bearer $token"

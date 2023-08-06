@@ -75,7 +75,3 @@ jobs:
             --tenant-id "$($info.tenantId)"
         env:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Set Functions name
-        run: |
-          gh variable set FUNCTIONS_NAME --env ${{ vars.AZURE_ENV_NAME }} --body "test"
