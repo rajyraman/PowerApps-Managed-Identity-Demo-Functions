@@ -29,6 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'dev'}}
     env:
+      FUNCTIONS_NAME: ${{ vars.FUNCTIONS_NAME}}
+      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME}}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
