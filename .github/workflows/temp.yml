@@ -1,0 +1,86 @@
+on:
+  workflow_dispatch:
+    inputs:
+      # Set this to the name of the environment you want to deploy to
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - "dev"
+          - "test"
+          - "prod"
+
+# GitHub Actions workflow to deploy to Azure using azd
+# To configure required secrets for connecting to Azure, simply run `azd pipeline config`
+
+# Set up permissions for deploying with secretless Azure federated credentials
+# https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-portal%2Clinux#set-up-azure-login-with-openid-connect-authentication
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    defaults:
+      run:
+        shell: pwsh
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev'}}
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install azd
+        uses: Azure/setup-azd@v0.1.0
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
+
+      - name: Log in with azd (Federated Credentials)
+        if: ${{ env.AZURE_CLIENT_ID != '' }}
+        run: |
+          azd auth login `
+            --client-id "$Env:AZURE_CLIENT_ID" `
+            --federated-credential-provider "github" `
+            --tenant-id "$Env:AZURE_TENANT_ID"
+
+      - name: "Az CLI login"
+        uses: azure/login@v1
+        if: ${{ env.AZURE_CLIENT_ID != '' }}
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in with azd (Client Credentials)
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
+        run: |
+          $info = $Env:AZURE_CREDENTIALS | ConvertFrom-Json -AsHashtable;
+          Write-Host "::add-mask::$($info.clientSecret)"
+
+          azd auth login `
+            --client-id "$($info.clientId)" `
+            --client-secret "$($info.clientSecret)" `
+            --tenant-id "$($info.tenantId)"
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - run: |
+          azd env select $env:AZURE_ENV_NAME
+          #Credit: https://github.com/Azure/azure-dev/issues/1697#issue-1617610507
+          $output = azd env get-values
+          foreach ($line in $output) {
+            $name, $value = $line.Split("=")
+            $value = $value -replace '^\"|\"$'
+            Write-Host "$name = $value"
+          }
+          Write-Host "`n‼ Functions code deployed. Swagger URL App https://$env:FUNCTIONS_NAME.azurewebsites.net/api/swagger/ui ‼" -ForegroundColor Yellow;
