@@ -6,6 +6,10 @@ hooks:
     shell: pwsh
     interactive: true
     run: ./hooks/postprovision.ps1
+  predeploy:
+    shell: pwsh
+    interactive: true
+    run: ./hooks/predeploy.ps1
   postdeploy:
     shell: pwsh
     interactive: true
