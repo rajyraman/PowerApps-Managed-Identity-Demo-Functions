@@ -1,10 +1,3 @@
-#Credit: https://github.com/Azure/azure-dev/issues/1697#issue-1617610507
-$output = azd env get-values
-foreach ($line in $output) {
-  $name, $value = $line.Split("=")
-  $value = $value -replace '^\"|\"$'
-  [Environment]::SetEnvironmentVariable($name, $value)
-}
 $functionAppId = az ad sp list --filter "displayName eq '$env:FUNCTIONS_NAME'" --query '[].appId' --output tsv;
 if ($null -ne $env:CI) {
   $token = az account get-access-token --resource=https://api.bap.microsoft.com/ --query accessToken --output tsv
