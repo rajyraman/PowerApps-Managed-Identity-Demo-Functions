@@ -1,5 +1,6 @@
 [![Open in GitHub Codespaces](https://img.shields.io/static/v1?style=for-the-badge&label=GitHub+Codespaces&message=Open&color=brightgreen&logo=github)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=427378322&machine=standardLinux32gb&devcontainer_path=.devcontainer%2Fdevcontainer.json&location=WestUs2)
 [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/rajyraman/PowerApps-Managed-Identity-Demo-Functions)
+![Provision and Deploy](https://github.com/rajyraman/PowerApps-Managed-Identity-Demo-Functions/actions/workflows/provision_and_deploy.yml/badge.svg)
 
 # Connect to Dataverse from Azure Functions using Managed Identity
 
