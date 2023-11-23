@@ -1,5 +1,7 @@
 $functionAppId = az ad sp list --filter "displayName eq '$env:FUNCTIONS_NAME'" --query '[].appId' --output tsv;
 if ($null -ne $env:CI) {
+  pac auth create -env $env:DATAVERSE_URL -mi
+
   # Give Application permission to create Service Principal
   pac admin application register -id $env:AZURE_CLIENT_ID
 
