@@ -8,7 +8,7 @@ if ($null -ne $env:CI) {
   # Create Function App as a Service Principal with System Admin role (implicit) in the environment
   pac admin assign-user -u $functionAppId -au -env $env:DATAVERSE_URL -r "System Administrator";
 
-  # This code was required before pac 1.29.6 to register the app register as admin application. It is no longer required, but keeping here for reference.
+  # This code was required before pac 1.29.6 to register the app as a admin application. It is no longer required, but keeping here for reference.
   # $token = az account get-access-token --resource=https://api.bap.microsoft.com/ --query accessToken --output tsv
   # $headers = @{
   #   Authorization = "Bearer $token"
