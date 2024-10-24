@@ -10,6 +10,8 @@ Blog Post: https://dreamingincrm.com/2021/11/16/connecting-to-dataverse-from-fun
 
 >**⚠ This repo was updated Aug-2023, so the content in the blog post does not exactly line up with what is currently in the repo. The repo shows the latest and greatest as on Sep, 2023**
 
+> ℹ [Oct 2024 Azd Community Standup](https://www.youtube.com/watch?v=XGSEEtJqh1c) presented the repo https://github.com/Azure-Samples/functions-quickstart-dotnet-azd. Please also refer this for comparison.
+
 This is a sample repo that shows how to use Bicep to create Function App and how to use the Function App's System Assigned Managed Identity to connect to Dataverse. This application uses the Azure Developer CLI (azd) to deploy all the resources.
 
 ### Prerequisites
