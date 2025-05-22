@@ -24,13 +24,14 @@ param sku object = { name: 'Standard_LRS' }
 
 param subnet string
 
-resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
-  name: name
-  location: location
-  tags: tags
-  kind: kind
-  sku: sku
-  properties: {
+module storage 'br/public:avm/res/storage/storage-account:0.10.0' = {
+  name: 'storage-${name}'
+  params: {
+    name: name
+    location: location
+    tags: tags
+    skuName: sku.name
+    kind: kind
     accessTier: accessTier
     allowBlobPublicAccess: allowBlobPublicAccess
     allowCrossTenantReplication: allowCrossTenantReplication
@@ -38,10 +39,11 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     defaultToOAuthAuthentication: defaultToOAuthAuthentication
     dnsEndpointType: dnsEndpointType
     minimumTlsVersion: minimumTlsVersion
+    publicNetworkAccess: publicNetworkAccess
     networkAcls: empty(subnet) ? {
       defaultAction: 'Allow'
     } : {
-      bypass: 'AzureServices'
+      bypass: ['AzureServices']
       defaultAction: 'Deny'
       virtualNetworkRules: [
         {
@@ -50,26 +52,32 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
         }
       ]
     }
-    publicNetworkAccess: publicNetworkAccess
   }
+}
 
-  resource fileServices 'fileServices' = {
-    name: 'default'
-    properties: {
-      shareDeleteRetentionPolicy: {
-        enabled: false
-      }
-    }
-    resource share 'shares' = {
-      name: shareName
-      properties: {
-        accessTier: 'TransactionOptimized'
-        shareQuota: 5120
-        enabledProtocols: 'SMB'
-      }
+module fileServices 'br/public:avm/res/storage/storage-account/file-service:0.10.0' = {
+  name: 'fileServices-${name}'
+  params: {
+    storageAccountName: storage.outputs.name
+    shareDeleteRetentionPolicy: {
+      enabled: false
     }
   }
 }
 
-output name string = storage.name
-output primaryEndpoints object = storage.properties.primaryEndpoints
+module fileShare 'br/public:avm/res/storage/storage-account/file-service/share:0.10.0' = {
+  name: 'fileShare-${name}'
+  params: {
+    storageAccountName: storage.outputs.name
+    name: shareName
+    accessTier: 'TransactionOptimized'
+    shareQuota: 5120
+    enabledProtocols: 'SMB'
+  }
+  dependsOn: [
+    fileServices
+  ]
+}
+
+output name string = storage.outputs.name
+output primaryEndpoints object = storage.outputs.primaryEndpoints
