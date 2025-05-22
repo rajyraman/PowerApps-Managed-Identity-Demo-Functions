@@ -43,6 +43,7 @@ var resourceToken = toLower(
 )
 var tags = { 'azd-env-name': environmentName }
 var functionName = '${abbrs.webSitesFunctions}${environmentName}-${resourceToken}'
+var managedIdentityName = '${abbrs.managedIdentityUserAssignedIdentities}${environmentName}-${resourceToken}'
 
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
@@ -110,6 +111,17 @@ module monitoring './core/monitor/monitoring.bicep' = {
   }
 }
 
+// User assigned managed identity for functions app
+module managedIdentity './core/security/managed-identity.bicep' = {
+  name: 'managed-identity'
+  scope: rg
+  params: {
+    name: managedIdentityName
+    location: location
+    tags: tags
+  }
+}
+
 module functions 'core/host/functions.bicep' = {
   name: 'functions-app'
   scope: rg
@@ -121,6 +133,7 @@ module functions 'core/host/functions.bicep' = {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     tags: union(tags, { 'azd-service-name': 'api' })
     subnetId: isCreateVNet ? vnet.outputs.functionAppSubnet : ''
+    userAssignedIdentityId: managedIdentity.outputs.id
     appSettings: {
       DATAVERSE_URL: dataverseUrl
     }
@@ -142,3 +155,4 @@ output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applica
 output FUNCTIONS_NAME string = functions.outputs.name
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = subscription().tenantId
+output MANAGED_IDENTITY_CLIENT_ID string = managedIdentity.outputs.clientId

@@ -6,6 +6,7 @@ param tags object = {}
 param applicationInsightsName string
 param appServicePlanId string
 param storageAccountName string
+param userAssignedIdentityId string
 
 // Microsoft.Web/sites Properties
 param kind string = 'functionapp'
@@ -47,7 +48,9 @@ module functions 'br/public:avm/res/web/site:0.3.0' = {
     tags: tags
     kind: kind
     serverFarmId: appServicePlanId
-    systemAssignedIdentity: true
+    userAssignedIdentities: {
+      '${userAssignedIdentityId}': {}
+    }
     siteConfig: {
       netFrameworkVersion: 'v6.0'
       functionsRuntimeScaleMonitoringEnabled: false
@@ -89,4 +92,7 @@ module networkConfig 'br/public:avm/res/web/site/config:0.3.0' = if (!empty(subn
 
 output name string = functions.outputs.name
 output uri string = 'https://${functions.outputs.defaultHostName}'
-output identityPrincipalId string = functions.outputs.systemAssignedPrincipalId
+// We can't use functions.outputs because user-assigned identities don't expose principal ID that way
+// Use resource() function to get the principal ID of the managed identity
+var managedIdentityResourceId = userAssignedIdentityId
+output identityPrincipalId string = managedIdentityResourceId
