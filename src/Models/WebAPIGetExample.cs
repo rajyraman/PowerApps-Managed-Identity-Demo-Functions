@@ -1,6 +1,6 @@
-﻿using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
+﻿using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Core.Abstractions;
 using Newtonsoft.Json.Serialization;
-using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Resolvers;
+using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Core.Resolvers;
 
 namespace PowerAppsManagedIdentityDemoFunctions.Functions.Models
 {
