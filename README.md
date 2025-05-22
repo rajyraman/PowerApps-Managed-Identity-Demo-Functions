@@ -23,7 +23,7 @@ This is a sample repo that shows how to use Bicep to create Function App and how
 The following prerequisites are required to use this application. Please ensure that you have them all installed locally.
 
 - [Azure Developer CLI](https://aka.ms/azd-install)
-- [.NET SDK 6.0](https://dotnet.microsoft.com/download/dotnet/6.0)
+- [.NET SDK 8.0](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Azure Functions Core Tools (4+)](https://docs.microsoft.com/azure/azure-functions/functions-run-local)
 - [Node.js with npm (16.13.1+)](https://nodejs.org/)
 - [Power Platform CLI](https://learn.microsoft.com/en-au/power-platform/developer/cli/introduction#install-microsoft-power-platform-cli)
@@ -32,7 +32,7 @@ If you don't want to install these tools locally you can always run the whole re
 
 ### Technology Stack
 
-- **.NET 6.0 Isolated Process Model** for Azure Functions
+- **.NET 8.0 Isolated Process Model** for Azure Functions
 - **Azure Verified Modules** for Bicep deployment
 - **Azure WebJobs Worker SDK** for .NET Isolated model
 - **DefaultAzureCredential** for token acquisition

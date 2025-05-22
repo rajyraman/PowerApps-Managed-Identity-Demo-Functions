@@ -55,3 +55,14 @@ var host = new HostBuilder()
     .Build();
 
 host.Run();
+
+async Task<string> GetToken(string environment, DefaultAzureCredential credential, IMemoryCache cache)
+{
+    var accessToken = await cache.GetOrCreateAsync(environment, async (cacheEntry) =>
+    {
+        cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(50);
+        var token = (await credential.GetTokenAsync(new TokenRequestContext(new[] { $"{environment}/.default" })));
+        return token;
+    });
+    return accessToken.Token;
+}
