@@ -14,17 +14,29 @@ Blog Post: https://dreamingincrm.com/2021/11/16/connecting-to-dataverse-from-fun
 
 This is a sample repo that shows how to use Bicep to create Function App and how to use the Function App's System Assigned Managed Identity to connect to Dataverse. This application uses the Azure Developer CLI (azd) to deploy all the resources.
 
+# Architecture
+
+![Architecture](./images/architecture.png)
+
 ### Prerequisites
 
 The following prerequisites are required to use this application. Please ensure that you have them all installed locally.
 
 - [Azure Developer CLI](https://aka.ms/azd-install)
-- [.NET SDK 6.0](https://dotnet.microsoft.com/download/dotnet/6.0)
+- [.NET SDK 8.0](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Azure Functions Core Tools (4+)](https://docs.microsoft.com/azure/azure-functions/functions-run-local)
 - [Node.js with npm (16.13.1+)](https://nodejs.org/)
 - [Power Platform CLI](https://learn.microsoft.com/en-au/power-platform/developer/cli/introduction#install-microsoft-power-platform-cli)
 
 If you don't want to install these tools locally you can always run the whole repo locally, using Dev Containers by clicking the Dev Containers button, or entirely in the browser by clicking the GitHub Codespaces button on the top.
+
+### Technology Stack
+
+- **.NET 8.0 Isolated Process Model** for Azure Functions
+- **Azure Verified Modules** for Bicep deployment
+- **Azure WebJobs Worker SDK** for .NET Isolated model
+- **DefaultAzureCredential** for token acquisition
+- **Managed Identity** for secure authentication with Dataverse
 
 ### Deploying
 
@@ -34,35 +46,20 @@ The easiest option is to run this single command using Azure Developer CLI.
 azd up
 ```
 
-This command will deploy the required resources and the Function App's application code as well.
+This will:
+1. Ask you for an environment name and Azure location if you haven't created one before
+2. Ask you to authenticate with Azure
+3. Create an Azure resource group, Function App, App Service Plan, Storage Account, Application Insights
+4. Build and deploy Functions to the created Function App
+5. Update Azure Function settings with your provided Power Apps instance URL
+6. Add the Function App's Managed Identity as an Application User to your Power Apps instance with System Administrator role
 
-You can also run provisioning first using
+The full provisioning and deployment of resources to Azure should take around 3 minutes.
 
-```powershell
-azd provision
-```
+There are three possible topologies that you can deploy:
 
-following by Function App's application code deployment using
-
-```powershell
-azd deploy
-```
-
-All the resources in Azure can be easily cleanup using
-
-```powershell
-azd down
-```
-For the full list of command refer to [azd docs](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/reference).
-
-The Function App can be deployed in 1 of 3 possible configurations.
-
-1. Azure Functions in Consumption Plan - This does not have any VNet or Storage level network isolation features. If you are just interesting in testing out how Functions connects to Dataverse as Managed Identity start here.
+1. Azure Function in Consumption - This does not have any VNet integration and everything is over the public internet. This is the cheapest option but the least secure. The only secure part here is that we are using Managed Identity to connect to Power Platform. This is the default if neither createVNet nor createPrivateLink parameters are provided.
 2. Azure Function in Elastic Premium with only Service Endpoints and VNet - Storage account is isolated to the VNet and Azure Functions traffic to Storage Account goes via the VNet using public Internet. This is the entry level security in terms of internal network traffic. This is controlled by the _createVNet_ parameter in main.bicep.
 3. Azure Function in Elastic Premium with Private Endpoints - Storage Account is isolated to the VNet. Function App communicates with Storage Account using VNet over Private Link connection. Traffic in Private Link goes through Microsoft Backbone not via public internet. Traffic to the Function App i.e people invoking the Functions via HTTP still is over the public internet. This is controlled by the _createPrivateLink_ parameter.
 
 This repo has azd [posthooks](hooks/postprovision.ps1) setup. So, the newly provisioned Function App will be automatically added as an Application User with System Administrator role using `pac admin assign-user`.
-
-# Architecture
-
-![Architecture](./images/architecture.png)

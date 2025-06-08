@@ -6,6 +6,7 @@ param tags object = {}
 param applicationInsightsName string
 param appServicePlanId string
 param storageAccountName string
+param userAssignedIdentityId string
 
 // Microsoft.Web/sites Properties
 param kind string = 'functionapp'
@@ -19,55 +20,75 @@ param numberOfWorkers int = -1
 param use32BitWorkerProcess bool = false
 param subnetId string
 
-// Only dedicated AppService plans do not need WEBSITE_CONTENTAZUREFILECONNECTIONSTRING and WEBSITE_CONTENTSHARE keys according to docs. See https://learn.microsoft.com/en-us/azure/azure-functions/functions-app-settings#website_contentazurefileconnectionstring
-// and https://techcommunity.microsoft.com/t5/apps-on-azure-blog/use-managed-identity-instead-of-azurewebjobsstorage-to-connect-a/ba-p/3657606
-// https://github.com/Azure/azure-functions-host/issues/8135 might not be correct
+resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' existing = {
+  name: storageAccountName
+}
+
+// Only dedicated AppService plans do not need WEBSITE_CONTENTAZUREFILECONNECTIONSTRING and WEBSITE_CONTENTSHARE keys according to docs.
 var defaultAppSettings = {
   AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
   WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
   WEBSITE_CONTENTSHARE: name
   FUNCTIONS_EXTENSION_VERSION: '~4'
-  FUNCTIONS_WORKER_RUNTIME: 'dotnet'
+  FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
   OpenApi__HideSwaggerUI: 'false'
   OpenApi__AuthLevel__UI: 'Anonymous'
   OpenApi__AuthLevel__Document: 'Anonymous'
 }
-module functions 'appservice.bicep' = {
+
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: applicationInsightsName
+}
+
+module functions 'br/public:avm/res/web/site:0.16.0' = {
   name: '${name}-functions'
   params: {
     name: name
     location: location
     tags: tags
-    applicationInsightsName: applicationInsightsName
-    appServicePlanId: appServicePlanId
-    appSettings: empty(subnetId) ? union(appSettings, defaultAppSettings) : union(appSettings, defaultAppSettings, {
-        WEBSITE_CONTENTOVERVNET: '1'
-      })
-    clientAffinityEnabled: clientAffinityEnabled
-    functionAppScaleLimit: functionAppScaleLimit
     kind: kind
-    minimumElasticInstanceCount: minimumElasticInstanceCount
-    numberOfWorkers: numberOfWorkers
-    use32BitWorkerProcess: use32BitWorkerProcess
-    subnetId: subnetId
+    serverFarmResourceId: appServicePlanId
+    managedIdentities: {
+      userAssignedResourceIds: [
+        userAssignedIdentityId
+      ]
+    }
+    siteConfig: {
+      netFrameworkVersion: 'v6.0'
+      functionsRuntimeScaleMonitoringEnabled: false
+      alwaysOn: true
+      ftpsState: 'FtpsOnly'
+      minTlsVersion: '1.2'
+      numberOfWorkers: numberOfWorkers != -1 ? numberOfWorkers : null
+      minimumElasticInstanceCount: minimumElasticInstanceCount != -1 ? minimumElasticInstanceCount : null
+      use32BitWorkerProcess: use32BitWorkerProcess
+      functionAppScaleLimit: functionAppScaleLimit != -1 ? functionAppScaleLimit : null
+      cors: {
+        allowedOrigins: ['https://portal.azure.com', 'https://ms.portal.azure.com']
+      }
+    }
+    clientAffinityEnabled: clientAffinityEnabled
+    httpsOnly: true
+    vnetRouteAllEnabled: empty(subnetId) ? false : true
+    vnetContentShareEnabled: empty(subnetId) ? false : true
+    virtualNetworkSubnetId: empty(subnetId) ? null : subnetId
+    configs: [
+      {
+        name: 'appsettings'
+        applicationInsightResourceId: applicationInsights.id
+        properties: union(
+          empty(subnetId) ? defaultAppSettings : union(defaultAppSettings, { WEBSITE_CONTENTOVERVNET: '1' }),
+          appSettings,
+          { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString }
+        )
+      }
+    ]
   }
 }
 
-resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' existing = {
-  name: storageAccountName
-}
-
-//Commenting this out because we are not going to connect using Function Runtime's Managed Identity. Leaving in here for reference incase folks want to use dedicated AppService Plan.
-// See https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#all
-// resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   scope: storage
-//   name: guid(resourceGroup().id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')) //Storage Blob Data Owner
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
-//     principalId: functions.outputs.identityPrincipalId
-//   }
-// }
-
 output name string = functions.outputs.name
-output uri string = functions.outputs.uri
-output identityPrincipalId string = functions.outputs.identityPrincipalId
+output uri string = 'https://${functions.outputs.defaultHostname}'
+// We can't use functions.outputs because user-assigned identities don't expose principal ID that way
+// Use resource() function to get the principal ID of the managed identity
+var managedIdentityResourceId = userAssignedIdentityId
+output identityPrincipalId string = managedIdentityResourceId

@@ -6,31 +6,46 @@ param shareName string
 @allowed([
   'Cool'
   'Hot'
-  'Premium' ])
+  'Premium'
+])
 param accessTier string = 'Hot'
 param allowBlobPublicAccess bool = true
 param allowCrossTenantReplication bool = true
 param allowSharedKeyAccess bool = true
 param defaultToOAuthAuthentication bool = false
 
-@allowed([ 'AzureDnsZone', 'Standard' ])
+@allowed(['AzureDnsZone', 'Standard'])
 param dnsEndpointType string = 'Standard'
 param kind string = 'StorageV2'
 param minimumTlsVersion string = 'TLS1_2'
 
-@allowed([ 'Enabled', 'Disabled' ])
+@allowed(['Enabled', 'Disabled'])
 param publicNetworkAccess string = 'Enabled'
 param sku object = { name: 'Standard_LRS' }
 
 param subnet string
 
-resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
-  name: name
-  location: location
-  tags: tags
-  kind: kind
-  sku: sku
-  properties: {
+module storage 'br/public:avm/res/storage/storage-account:0.20.0' = {
+  name: 'storage-${name}'
+  params: {
+    fileServices: {
+      shareDeleteRetentionPolicy: {
+        enabled: false
+      }
+      shares: [
+        {
+          name: shareName
+          accessTier: 'TransactionOptimized'
+          shareQuota: 5120
+          enabledProtocols: 'SMB'
+        }
+      ]
+    }
+    name: name
+    location: location
+    tags: tags
+    skuName: sku.name
+    kind: kind
     accessTier: accessTier
     allowBlobPublicAccess: allowBlobPublicAccess
     allowCrossTenantReplication: allowCrossTenantReplication
@@ -38,38 +53,23 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     defaultToOAuthAuthentication: defaultToOAuthAuthentication
     dnsEndpointType: dnsEndpointType
     minimumTlsVersion: minimumTlsVersion
-    networkAcls: empty(subnet) ? {
-      defaultAction: 'Allow'
-    } : {
-      bypass: 'AzureServices'
-      defaultAction: 'Deny'
-      virtualNetworkRules: [
-        {
-          id: subnet
-          action: 'Allow'
-        }
-      ]
-    }
     publicNetworkAccess: publicNetworkAccess
-  }
-
-  resource fileServices 'fileServices' = {
-    name: 'default'
-    properties: {
-      shareDeleteRetentionPolicy: {
-        enabled: false
-      }
-    }
-    resource share 'shares' = {
-      name: shareName
-      properties: {
-        accessTier: 'TransactionOptimized'
-        shareQuota: 5120
-        enabledProtocols: 'SMB'
-      }
-    }
+    networkAcls: empty(subnet)
+      ? {
+          defaultAction: 'Allow'
+        }
+      : {
+          bypass: ['AzureServices']
+          defaultAction: 'Deny'
+          virtualNetworkRules: [
+            {
+              id: subnet
+              action: 'Allow'
+            }
+          ]
+        }
   }
 }
 
-output name string = storage.name
-output primaryEndpoints object = storage.properties.primaryEndpoints
+output name string = storage.outputs.name
+output primaryBlobEndpoint string = storage.outputs.primaryBlobEndpoint

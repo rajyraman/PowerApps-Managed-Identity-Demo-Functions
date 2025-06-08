@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
 using Microsoft.Extensions.Caching.Memory;
@@ -35,17 +33,18 @@ namespace PowerAppsManagedIdentityDemoFunctions.Functions
             _cache = cache;
         }
 
-        [FunctionName("EntityMetadata")]
-        [OpenApiOperation(operationId: "EntityMetadata", tags: "PowerApps", Description = "Get Details about an entity (Managed Identity)", Summary = "Get Details about an entity (Managed Identity)")]
+        [Function("EntityMetadata")]
+        [OpenApiOperation(operationId: "EntityMetadata", tags: new[] { "PowerApps" }, Description = "Get Details about an entity (Managed Identity)", Summary = "Get Details about an entity (Managed Identity)")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
         [OpenApiParameter(name: "entityName", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The entity to retrieve metadata for")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Description = "Response with entity metadata")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Summary = "Invalid entity")]
-        public ActionResult EntityMetadata(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "entity/{entityName}")] HttpRequest req,
+        public HttpResponseData EntityMetadata(
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "entity/{entityName}")] HttpRequestData req,
             string entityName,
-            ILogger log)
+            FunctionContext context)
         {
+            var log = context.GetLogger<PowerAppsFunction>();
             log.LogInformation($"C# HTTP trigger function processed entitymetadata request for {entityName}.");
 
             var entityMetaData = _cache.GetOrCreate(
@@ -56,63 +55,118 @@ namespace PowerAppsManagedIdentityDemoFunctions.Functions
                         log.LogInformation($"About to get metadata for {entityName}.");
                         return _serviceClient.GetEntityMetadata(entityName);
                     });
+            
+            var response = req.CreateResponse();
+            
             if (entityMetaData == null)
-                return new BadRequestObjectResult($"{entityName} does not exist");
-
-            return new OkObjectResult(entityMetaData);
-
+            {
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.WriteString($"{entityName} does not exist");
+                return response;
+            }
+            
+            response.StatusCode = HttpStatusCode.OK;
+            response.Headers.Add("Content-Type", "application/json");
+            response.WriteString(JsonConvert.SerializeObject(entityMetaData));
+            return response;
         }
 
-        [FunctionName("WhoAmI")]
-        [OpenApiOperation(operationId: "WhoAmI", tags: "PowerApps", Description = "Get details about current Managed Identity user", Summary = "Get details about current Managed Identity user using raw HTTP")]
+        [Function("WhoAmI")]
+        [OpenApiOperation(operationId: "WhoAmI", tags: new[] { "PowerApps" }, Description = "Get details about current Managed Identity user", Summary = "Get details about current Managed Identity user using raw HTTP")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Description = "Response with userId, organization and business unit")]
-        public async Task<ActionResult> WhoAmI(
-            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequest req,
-            ILogger log)
+        public async Task<HttpResponseData> WhoAmI(
+            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData req,
+            FunctionContext context)
         {
+            var log = context.GetLogger<PowerAppsFunction>();
             log.LogInformation("C# HTTP trigger function processed WhoAmI request.");
 
-            //Auth, Base Url is handled on the Startup during instantiation of HTTPClient
+            //Auth, Base Url is handled on the Program.cs during instantiation of HTTPClient
             var whoAmIResponse = await (await _client.GetAsync($"WhoAmI()")).Content.ReadAsStringAsync();
-            return new OkObjectResult(JsonConvert.DeserializeObject(whoAmIResponse));
+            
+            var response = req.CreateResponse();
+            response.StatusCode = HttpStatusCode.OK;
+            response.Headers.Add("Content-Type", "application/json");
+            response.WriteString(whoAmIResponse);
+            return response;
         }
 
-        [FunctionName("WebAPIRaw")]
-        [OpenApiOperation(operationId: "WebAPIRaw", tags: "PowerApps", Description = "Do a raw GET WebAPI Request", Summary = "Do a raw GET WebAPI Request")]
+        [Function("WebAPIRaw")]
+        [OpenApiOperation(operationId: "WebAPIRaw", tags: new[] { "PowerApps" }, Description = "Do a raw GET WebAPI Request", Summary = "Do a raw GET WebAPI Request")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
         [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(RawWebApiGetRequestModel), Required = true, Description = "GET Uri to do the WebAPI call", Example = typeof(WebAPIGetExample))]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Description = "WebAPI Response")]
-        public async Task<ActionResult> WebAPIRaw(
-            [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req,
-            ILogger log)
+        public async Task<HttpResponseData> WebAPIRaw(
+            [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req,
+            FunctionContext context)
         {
-            log.LogInformation("C# HTTP trigger function processed WhoAmI request.");
+            var log = context.GetLogger<PowerAppsFunction>();
+            log.LogInformation("C# HTTP trigger function processed WebAPIRaw request.");
+            
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             var request = JsonConvert.DeserializeObject<RawWebApiGetRequestModel>(requestBody);
 
-            //Auth, Base Url is handled on the Startup during instantiation of HTTPClient
-            var whoAmIResponse = await (await _client.GetAsync(request.Uri)).Content.ReadAsStringAsync();
-            return new OkObjectResult(JsonConvert.DeserializeObject(whoAmIResponse));
+            //Auth, Base Url is handled on the Program.cs during instantiation of HTTPClient
+            var response = req.CreateResponse();
+            
+            try 
+            {
+                var apiResponse = await (await _client.GetAsync(request.Uri)).Content.ReadAsStringAsync();
+                response.StatusCode = HttpStatusCode.OK;
+                response.Headers.Add("Content-Type", "application/json");
+                response.WriteString(apiResponse);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Error executing WebAPI request");
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.WriteString($"Error: {ex.Message}");
+            }
+            
+            return response;
         }
 
-        [FunctionName("ExecuteFetchXML")]
-        [OpenApiOperation(operationId: "ExecuteFetchXML", tags: "PowerApps", Description = "Execute FetchXML query", Summary = "Execute FetchXML query")]
+        [Function("ExecuteFetchXML")]
+        [OpenApiOperation(operationId: "ExecuteFetchXML", tags: new[] { "PowerApps" }, Description = "Execute FetchXML query", Summary = "Execute FetchXML query")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
         [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(FetchXMLRequest), Required = true, Description = "FetchXML query to execute")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Summary = "Response with entity records")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Summary = "Invalid FetchXML")]
-        public async Task<ActionResult> ExecuteFetchXML(
-            [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req,
-            ILogger log)
+        public async Task<HttpResponseData> ExecuteFetchXML(
+            [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req,
+            FunctionContext context)
         {
+            var log = context.GetLogger<PowerAppsFunction>();
             log.LogInformation($"C# HTTP trigger function processed FetchXML request.");
+            
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             var request = JsonConvert.DeserializeObject<FetchXMLRequest>(requestBody);
-            if (string.IsNullOrEmpty(request.FetchXML)) return new BadRequestObjectResult(new InvalidRequestModel { Reason = "FetchXML is required" });
+            
+            var response = req.CreateResponse();
+            
+            if (string.IsNullOrEmpty(request.FetchXML)) 
+            {
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.WriteString(JsonConvert.SerializeObject(new InvalidRequestModel { Reason = "FetchXML is required" }));
+                return response;
+            }
 
-            var entities = _serviceClient.GetEntityDataByFetchSearch(request.FetchXML);
-            return new OkObjectResult(entities);
+            try
+            {
+                var entities = _serviceClient.GetEntityDataByFetchSearch(request.FetchXML);
+                response.StatusCode = HttpStatusCode.OK;
+                response.Headers.Add("Content-Type", "application/json");
+                response.WriteString(JsonConvert.SerializeObject(entities));
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Error executing FetchXML");
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.WriteString($"Error: {ex.Message}");
+            }
+            
+            return response;
         }
     }
 
