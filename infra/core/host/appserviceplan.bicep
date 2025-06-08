@@ -7,16 +7,14 @@ param sku object
 
 // Convert from custom SKU object to AVM format
 var skuName = sku.name
-var capacity = contains(sku, 'capacity') ? sku.capacity : null
 
-module appServicePlan 'br/public:avm/res/web/serverfarm:0.3.0' = {
+module appServicePlan 'br/public:avm/res/web/serverfarm:0.4.1' = {
   name: 'appServicePlan-${name}'
   params: {
     name: name
     location: location
     tags: tags
     skuName: skuName
-    capacity: capacity
     kind: kind
     reserved: false
     maximumElasticWorkerCount: 20

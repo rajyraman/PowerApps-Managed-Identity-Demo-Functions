@@ -151,7 +151,6 @@ module privatelink 'core/network/privatelink.bicep' = if (isCreatePrivateLink) {
 }
 
 // App outputs
-output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output FUNCTIONS_NAME string = functions.outputs.name
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = subscription().tenantId

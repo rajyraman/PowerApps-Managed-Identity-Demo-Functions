@@ -6,27 +6,41 @@ param shareName string
 @allowed([
   'Cool'
   'Hot'
-  'Premium' ])
+  'Premium'
+])
 param accessTier string = 'Hot'
 param allowBlobPublicAccess bool = true
 param allowCrossTenantReplication bool = true
 param allowSharedKeyAccess bool = true
 param defaultToOAuthAuthentication bool = false
 
-@allowed([ 'AzureDnsZone', 'Standard' ])
+@allowed(['AzureDnsZone', 'Standard'])
 param dnsEndpointType string = 'Standard'
 param kind string = 'StorageV2'
 param minimumTlsVersion string = 'TLS1_2'
 
-@allowed([ 'Enabled', 'Disabled' ])
+@allowed(['Enabled', 'Disabled'])
 param publicNetworkAccess string = 'Enabled'
 param sku object = { name: 'Standard_LRS' }
 
 param subnet string
 
-module storage 'br/public:avm/res/storage/storage-account:0.10.0' = {
+module storage 'br/public:avm/res/storage/storage-account:0.20.0' = {
   name: 'storage-${name}'
   params: {
+    fileServices: {
+      shareDeleteRetentionPolicy: {
+        enabled: false
+      }
+      shares: [
+        {
+          name: shareName
+          accessTier: 'TransactionOptimized'
+          shareQuota: 5120
+          enabledProtocols: 'SMB'
+        }
+      ]
+    }
     name: name
     location: location
     tags: tags
@@ -40,44 +54,22 @@ module storage 'br/public:avm/res/storage/storage-account:0.10.0' = {
     dnsEndpointType: dnsEndpointType
     minimumTlsVersion: minimumTlsVersion
     publicNetworkAccess: publicNetworkAccess
-    networkAcls: empty(subnet) ? {
-      defaultAction: 'Allow'
-    } : {
-      bypass: ['AzureServices']
-      defaultAction: 'Deny'
-      virtualNetworkRules: [
-        {
-          id: subnet
-          action: 'Allow'
+    networkAcls: empty(subnet)
+      ? {
+          defaultAction: 'Allow'
         }
-      ]
-    }
+      : {
+          bypass: ['AzureServices']
+          defaultAction: 'Deny'
+          virtualNetworkRules: [
+            {
+              id: subnet
+              action: 'Allow'
+            }
+          ]
+        }
   }
-}
-
-module fileServices 'br/public:avm/res/storage/storage-account/file-service:0.10.0' = {
-  name: 'fileServices-${name}'
-  params: {
-    storageAccountName: storage.outputs.name
-    shareDeleteRetentionPolicy: {
-      enabled: false
-    }
-  }
-}
-
-module fileShare 'br/public:avm/res/storage/storage-account/file-service/share:0.10.0' = {
-  name: 'fileShare-${name}'
-  params: {
-    storageAccountName: storage.outputs.name
-    name: shareName
-    accessTier: 'TransactionOptimized'
-    shareQuota: 5120
-    enabledProtocols: 'SMB'
-  }
-  dependsOn: [
-    fileServices
-  ]
 }
 
 output name string = storage.outputs.name
-output primaryEndpoints object = storage.outputs.primaryEndpoints
+output primaryBlobEndpoint string = storage.outputs.primaryBlobEndpoint

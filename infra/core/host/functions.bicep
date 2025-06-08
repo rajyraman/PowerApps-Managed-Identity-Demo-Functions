@@ -40,16 +40,18 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
   name: applicationInsightsName
 }
 
-module functions 'br/public:avm/res/web/site:0.3.0' = {
+module functions 'br/public:avm/res/web/site:0.16.0' = {
   name: '${name}-functions'
   params: {
     name: name
     location: location
     tags: tags
     kind: kind
-    serverFarmId: appServicePlanId
-    userAssignedIdentities: {
-      '${userAssignedIdentityId}': {}
+    serverFarmResourceId: appServicePlanId
+    managedIdentities: {
+      userAssignedResourceIds: [
+        userAssignedIdentityId
+      ]
     }
     siteConfig: {
       netFrameworkVersion: 'v6.0'
@@ -62,7 +64,7 @@ module functions 'br/public:avm/res/web/site:0.3.0' = {
       use32BitWorkerProcess: use32BitWorkerProcess
       functionAppScaleLimit: functionAppScaleLimit != -1 ? functionAppScaleLimit : null
       cors: {
-        allowedOrigins: [ 'https://portal.azure.com', 'https://ms.portal.azure.com' ]
+        allowedOrigins: ['https://portal.azure.com', 'https://ms.portal.azure.com']
       }
     }
     clientAffinityEnabled: clientAffinityEnabled
@@ -70,28 +72,22 @@ module functions 'br/public:avm/res/web/site:0.3.0' = {
     vnetRouteAllEnabled: empty(subnetId) ? false : true
     vnetContentShareEnabled: empty(subnetId) ? false : true
     virtualNetworkSubnetId: empty(subnetId) ? null : subnetId
-    appSettings: union(
-      empty(subnetId) ? defaultAppSettings : union(defaultAppSettings, { WEBSITE_CONTENTOVERVNET: '1' }),
-      appSettings,
-      { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString }
-    )
-  }
-}
-
-// Virtual Network integration if subnet is provided
-module networkConfig 'br/public:avm/res/web/site/config:0.3.0' = if (!empty(subnetId)) {
-  name: '${name}-virtualNetwork'
-  params: {
-    name: 'virtualNetwork'
-    kind: 'networkConfig'
-    siteName: functions.outputs.name
-    subnetResourceId: subnetId
-    swiftSupported: true
+    configs: [
+      {
+        name: 'appsettings'
+        applicationInsightResourceId: applicationInsights.id
+        properties: union(
+          empty(subnetId) ? defaultAppSettings : union(defaultAppSettings, { WEBSITE_CONTENTOVERVNET: '1' }),
+          appSettings,
+          { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString }
+        )
+      }
+    ]
   }
 }
 
 output name string = functions.outputs.name
-output uri string = 'https://${functions.outputs.defaultHostName}'
+output uri string = 'https://${functions.outputs.defaultHostname}'
 // We can't use functions.outputs because user-assigned identities don't expose principal ID that way
 // Use resource() function to get the principal ID of the managed identity
 var managedIdentityResourceId = userAssignedIdentityId

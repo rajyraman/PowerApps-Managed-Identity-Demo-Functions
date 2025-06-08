@@ -8,8 +8,8 @@ module logAnalytics 'br/public:avm/res/operational-insights/workspace:0.4.0' = {
     name: name
     location: location
     tags: tags
-    retentionInDays: 30
-    sku: 'PerGB2018'
+    dataRetention: 30
+    skuName: 'PerGB2018'
   }
 }
 
